@@ -156,6 +156,13 @@
         </div>
         
         <div class="sidebar-section">
+            <div class="sidebar-label">Place Pin by Coordinates:</div>
+            <input type="text" id="latInput" placeholder="Latitude (e.g. 34.17497)">
+            <input type="text" id="lngInput" placeholder="Longitude (e.g. -118.48150)">
+            <button id="placePinBtn" style="background-color: #44aa44;">Place Pin</button>
+            <button id="clearPinBtn" style="background-color: #888888; margin-top:6px;">Clear Pin</button>
+        </div>
+        <div class="sidebar-section">
             <button class="form-outline-btn" id="formBtn" style="display: none;">Form Outline</button>
             <button class="clear-all-btn" id="clearBtn">Clear All</button>
         </div>
@@ -193,6 +200,7 @@
             let currentColor = '#FF0000';
             let currentMode = 'outline'; // 'point' or 'outline'
             const triangleGroup = L.featureGroup().addTo(map);
+            let manualMarker = null; // marker added via lat/lng inputs
             
             // Sidebar controls
             const sidebar = document.getElementById('sidebar');
@@ -201,6 +209,10 @@
             const colorPicker = document.getElementById('colorPicker');
             const formBtn = document.getElementById('formBtn');
             const clearBtn = document.getElementById('clearBtn');
+            const latInput = document.getElementById('latInput');
+            const lngInput = document.getElementById('lngInput');
+            const placePinBtn = document.getElementById('placePinBtn');
+            const clearPinBtn = document.getElementById('clearPinBtn');
             
             // Sidebar toggle
             sidebarToggle.addEventListener('click', function() {
@@ -252,6 +264,55 @@
                 pointMarkers.forEach(m => map.removeLayer(m));
                 pointMarkers = [];
                 formBtn.style.display = 'none';
+            });
+
+            // Place Pin button
+            placePinBtn.addEventListener('click', function(e) {
+                L.DomEvent.stopPropagation(e);
+                const lat = parseFloat(latInput.value);
+                const lng = parseFloat(lngInput.value);
+
+                if (!isFinite(lat) || !isFinite(lng)) {
+                    alert('Please enter valid numeric latitude and longitude.');
+                    return;
+                }
+
+                if (manualMarker) {
+                    map.removeLayer(manualMarker);
+                    manualMarker = null;
+                }
+
+                manualMarker = L.circleMarker([lat, lng], {
+                    radius: 8,
+                    weight: 2,
+                    color: '#ffffff',
+                    fillColor: currentColor,
+                    fillOpacity: 1
+                }).addTo(map)
+                .bindPopup('Manual pin<br>' + lat.toFixed(6) + ', ' + lng.toFixed(6))
+                .openPopup();
+
+                map.setView([lat, lng], 16);
+            });
+
+            // Clear Pin button
+            clearPinBtn.addEventListener('click', function(e) {
+                L.DomEvent.stopPropagation(e);
+                if (manualMarker) {
+                    map.removeLayer(manualMarker);
+                    manualMarker = null;
+                }
+                latInput.value = '';
+                lngInput.value = '';
+            });
+
+            // Allow Enter key to place pin
+            [latInput, lngInput].forEach(input => {
+                input.addEventListener('keydown', function(ev) {
+                    if (ev.key === 'Enter') {
+                        placePinBtn.click();
+                    }
+                });
             });
             
             // Add click handler to map
